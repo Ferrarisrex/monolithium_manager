@@ -310,7 +310,6 @@ public class MonolithCoordinator {
         }
 
         // runs a single assignment cycle: request -> run rust -> send results -> exit.
-        // You can wrap this to repeat indefinitely if you want continuous work.
         void runOnce() {
             try (Socket sock = new Socket(host, port);
                  BufferedReader in = new BufferedReader(new InputStreamReader(sock.getInputStream()));
@@ -345,6 +344,9 @@ public class MonolithCoordinator {
             List<String> cmd = buildRustCommand(start, chunkSize);
             System.out.println("Running rust command: " + String.join(" ", cmd));
             ProcessBuilder pb = new ProcessBuilder(cmd);
+            File jarDir = new File(System.getProperty("java.class.path")).getAbsoluteFile().getParentFile();
+            pb.directory(jarDir);
+
             pb.redirectErrorStream(true);
             List<Monolith> found = new ArrayList<>();
             try {
@@ -373,17 +375,34 @@ public class MonolithCoordinator {
             return found;
         }
 
-        // Build the `cargo run` command. Adjust this template if your rust wrapper expects different args.
+        // Build the `cargo run` command. Adjust this template if rust wrapper expects different args.
         private List<String> buildRustCommand(long start, long chunkSize) {
-            // If your rust executable is already built, replace with path to binary to avoid cargo overhead.
+            String hostname;
+            try {
+                hostname = java.net.InetAddress.getLocalHost().getHostName();
+            } catch (Exception e) {
+                hostname = "unknown";
+            }
+
+            // Get directory where the running JAR is located
+            String jarPath = new File(
+                MonolithCoordinator.class.getProtectionDomain().getCodeSource().getLocation().getPath()
+            ).getParent();
+
+            // Create a unique target directory beside the JAR, e.g. "<jar dir>/cargo_build_HostA"
+            String targetDir = new File(jarPath, "cargo_build_" + hostname).getAbsolutePath();
+
             return Arrays.asList(
-                "cargo", "run", "--release", "--features", "fast", "--features", "candidates", "--",
+                "cargo", "run", "--release",
+                "--target-dir", targetDir,
+                "--features", "fast", "--features", "candidates", "--",
                 "spawn", "--chunks", "1000", "--radius", "262144", "--step", "2048",
                 "--area", "2800000", "linear",
                 "--start", Long.toString(start),
                 "--total", Long.toString(chunkSize)
             );
         }
+
     }
 
     /* --------------------------------------
