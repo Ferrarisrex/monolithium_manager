@@ -32,7 +32,7 @@ public class MonolithCoordinator {
 
     // Configurable defaults
     static final int DEFAULT_PORT = 5555;
-    static final long CHUNK_SIZE = 1_000_000L;
+    static final long CHUNK_SIZE = 100_000_000L;
     static final String XML_FILE = "monoliths.xml";
     static final int KEEP_TOP = 100;
 
@@ -78,7 +78,7 @@ public class MonolithCoordinator {
             new Server(port, chunkSize).start();
         } else {
             System.out.println("Starting client connecting to " + serverHost + ":" + port + " chunkSize=" + chunkSize);
-            new Client(serverHost, port, chunkSize).runOnce();
+            new Client(serverHost, port, chunkSize).runLoop();
         }
     }
 
@@ -307,6 +307,16 @@ public class MonolithCoordinator {
             this.host = host;
             this.port = port;
             this.chunkSize = chunkSize;
+        }
+        void runLoop() {
+            while (true) {
+                runOnce();
+                try {
+                    Thread.sleep(10_000);
+                } catch (InterruptedException e) {
+                    break;
+                }
+            }
         }
 
         // runs a single assignment cycle: request -> run rust -> send results -> exit.
