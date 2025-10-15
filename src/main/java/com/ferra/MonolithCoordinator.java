@@ -363,7 +363,7 @@ public class MonolithCoordinator {
                 Process p = pb.start();
                 BufferedReader r = new BufferedReader(new InputStreamReader(p.getInputStream()));
                 String line;
-                Pattern ptn = Pattern.compile("json\\s+(\\{.*\\})");
+                Pattern ptn = Pattern.compile("json\\s+(\\{.*\\})"); // MUST CHANGE IN FUTURE UPDATES, JSON NO LONGER PRECEDED BY "json " 
                 while ((line = r.readLine()) != null) {
                     System.out.println("[rust] " + line);
                     Matcher m = ptn.matcher(line);
